@@ -21,7 +21,9 @@ app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 
 
-app.use(/.*\.js/, function(req, res, next) {
+
+
+app.get(/.*\.js/, function(req, res, next) {
   fs.readFile(path.join('public', req.originalUrl), function(err,data) {
     if (err) {
       next();
@@ -30,12 +32,12 @@ app.use(/.*\.js/, function(req, res, next) {
     var lines = data.toString().split('\n');
     for(var i=0,max=lines.length;i<max;i++) {
       if (/function.*\(.*\)\s*{\s*[^ /\*\d\*/]*$/.test(lines[i])) {
-        lines[i] = lines[i].replace('\r','') + ';console.log(' + (i+1) +');\r';
+        lines[i] = lines[i].replace('\r','') + ";try{}finally{var _x_=_x_||new XMLHttpRequest();_x_.open('GET','/run?url=" + req.originalUrl + ":" + i + "');_x_.send()};\r";
       }
-      console.log(lines[i]);
+      //console.log(lines[i]);
     }
     res.set('Content-Type', 'application/javascript')
-    res.send(lines.join(''));
+    res.send(lines.join('\n'));
   })
 })
 
@@ -46,7 +48,25 @@ app.use(express.static(path.join(__dirname, 'public')));
 //app.use('/users', usersRouter);
 
 
-
+app.get("/run", function(req, res) {
+  //console.log(req.query);
+  var p = req.query.url.split(':')[0];
+  var i = parseInt(req.query.url.split(':')[1]);
+  var data = fs.readFileSync(path.join('public', p));
+  if (!data) {
+    next();
+    return;
+  }
+  var lines = data.toString().split('\n');
+  console.log(lines);
+  if (lines[i].indexOf(' /*run*/') > -1) {
+    res.end();
+    return;
+  }
+  lines[i] = lines[i].replace('\r','') + ' /*run*/\r';
+  fs.writeFileSync(path.join('public', p),lines.join('\n'))
+  res.end();
+})
 
 
 

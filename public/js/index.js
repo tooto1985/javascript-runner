@@ -1,8 +1,15 @@
 (function() {
-    alert('100');
-    document.addEventListener('DOMContentLoaded', function() { /*3*/
+
+    alert('200');
+
+    document.addEventListener('DOMContentLoaded', function() {
+
         document.body.addEventListener('click', function() {
+
             alert('body click');
+
         })
+
     }, false);
+
 })();
