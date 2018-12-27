@@ -1,15 +1,10 @@
-(function() {
+$(function () { /*5*/
+  $('#btn').click(function () { /*5*/
+    run();
+  })
 
-    alert('200');
+  function run () { /*4*/
 
-    document.addEventListener('DOMContentLoaded', function() {
+  }
 
-        document.body.addEventListener('click', function() {
-
-            alert('body click');
-
-        })
-
-    }, false);
-
-})();
+})

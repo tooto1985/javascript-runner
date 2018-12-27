@@ -1,90 +1,67 @@
-var createError = require('http-errors');
-var express = require('express');
-var path = require('path');
-var cookieParser = require('cookie-parser');
-var logger = require('morgan');
-
-var fs = require('fs');
-
-//var indexRouter = require('./routes/index');
-//var usersRouter = require('./routes/users');
-
-var app = express();
-
-// view engine setup
-app.set('views', path.join(__dirname, 'views'));
-app.set('view engine', 'ejs');
-
-app.use(logger('dev'));
-app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
-app.use(cookieParser());
-
-
-
-
-app.get(/.*\.js/, function(req, res, next) {
-  fs.readFile(path.join('public', req.originalUrl), function(err,data) {
+var createError = require('http-errors')
+var express = require('express')
+var path = require('path')
+var cookieParser = require('cookie-parser')
+var logger = require('morgan')
+var fs = require('fs')
+var app = express()
+app.set('views', path.join(__dirname, 'views'))
+app.set('view engine', 'ejs')
+app.use(logger('dev'))
+app.use(express.json())
+app.use(express.urlencoded({ extended: false }))
+app.use(cookieParser())
+app.get(/.*\.js/, function (req, res, next) {
+  fs.readFile(path.join('public', req.originalUrl), function (err, data) {
     if (err) {
-      next();
-      return;
+      next()
+      return
     }
-    var lines = data.toString().split('\n');
-    for(var i=0,max=lines.length;i<max;i++) {
-      if (/function.*\(.*\)\s*{\s*[^ /\*\d\*/]*$/.test(lines[i])) {
-        lines[i] = lines[i].replace('\r','') + ";try{}finally{var _x_=_x_||new XMLHttpRequest();_x_.open('GET','/run?url=" + req.originalUrl + ":" + i + "');_x_.send()};\r";
+    var lines = data.toString().split('\n')
+    for (var i = 0, max = lines.length; i < max; i++) {
+      if (/function.*\(.*\)\s*{/.test(lines[i])) {
+        lines[i] = lines[i].replace('\r', '') + ';_cb_(' + i + ');\r'
       }
-      //console.log(lines[i]);
     }
+    lines[++i] = ';function _cb_(n) {\r'
+    lines[++i] = '  window._xhr_ = window._xhr_ || new XMLHttpRequest();\r'
+    lines[++i] = "  _xhr_.open('GET', '/run?url=" + req.originalUrl + ":' + n, false);\r"
+    lines[++i] = '  _xhr_.send();\r'
+    lines[++i] = '};\r'
     res.set('Content-Type', 'application/javascript')
-    res.send(lines.join('\n'));
+    res.send(lines.join('\n'))
   })
 })
-
-
-app.use(express.static(path.join(__dirname, 'public')));
-
-//app.use('/', indexRouter);
-//app.use('/users', usersRouter);
-
-
-app.get("/run", function(req, res) {
-  //console.log(req.query);
-  var p = req.query.url.split(':')[0];
-  var i = parseInt(req.query.url.split(':')[1]);
-  var data = fs.readFileSync(path.join('public', p));
-  if (!data) {
-    next();
-    return;
+app.use(express.static(path.join(__dirname, 'public')))
+app.get('/run', function (req, res, next) {
+  var p = req.query.url.split(':')[0]
+  var i = parseInt(req.query.url.split(':')[1])
+  var data = fs.readFileSync(path.join('public', p))
+  var lines = data.toString().split('\n')
+  if (/function.*\(.*\)\s*{.*(?:\/\*(\d+)\*\/)/.test(lines[i])) {
+    var start = lines[i].lastIndexOf('/*') + 2
+    var end = lines[i].lastIndexOf('*/')
+    var n = parseInt(lines[i].substring(start, end)) + 1
+    lines[i] = lines[i].replace(/(function.*\(.*\)\s*{.*\/\*)\d+(\*\/)/, '$1' + n + '$2')
+    fs.writeFileSync(path.join('public', p), lines.join('\n'))
+  } else {
+    if (/function.*\(.*\)\s*{/.test(lines[i])) {
+      lines[i] = lines[i].replace('\r', '') + ' /*1*/\r'
+      fs.writeFileSync(path.join('public', p), lines.join('\n'))
+    }
   }
-  var lines = data.toString().split('\n');
-  console.log(lines);
-  if (lines[i].indexOf(' /*run*/') > -1) {
-    res.end();
-    return;
-  }
-  lines[i] = lines[i].replace('\r','') + ' /*run*/\r';
-  fs.writeFileSync(path.join('public', p),lines.join('\n'))
-  res.end();
+  res.end()
 })
-
-
-
-
-// catch 404 and forward to error handler
-app.use(function(req, res, next) {
-  next(createError(404));
-});
-
-// error handler
-app.use(function(err, req, res, next) {
+app.use(function (req, res, next) {
+  next(createError(404))
+})
+app.use(function (err, req, res, next) {
   // set locals, only providing error in development
-  res.locals.message = err.message;
-  res.locals.error = req.app.get('env') === 'development' ? err : {};
+  res.locals.message = err.message
+  res.locals.error = req.app.get('env') === 'development' ? err : {}
 
   // render the error page
-  res.status(err.status || 500);
-  res.render('error');
-});
-
-module.exports = app;
+  res.status(err.status || 500)
+  res.render('error')
+})
+module.exports = app
