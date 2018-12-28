@@ -38,15 +38,15 @@ app.get('/run', function (req, res, next) {
   var i = parseInt(req.query.url.split(':')[1])
   var data = fs.readFileSync(path.join('public', p))
   var lines = data.toString().split('\n')
-  if (/function.*\(.*\)\s*{.*(?:\/\*(\d+)\*\/)/.test(lines[i])) {
+  if (/function.*\(.*\)\s*{.*(?:\/\*(\s\d+\s)\*\/)/.test(lines[i])) {
     var start = lines[i].lastIndexOf('/*') + 2
     var end = lines[i].lastIndexOf('*/')
     var n = parseInt(lines[i].substring(start, end)) + 1
-    lines[i] = lines[i].replace(/(function.*\(.*\)\s*{.*\/\*)\d+(\*\/)/, '$1' + n + '$2')
+    lines[i] = lines[i].replace(/(function.*\(.*\)\s*{.*\/\*\s)\d+(\s\*\/)/, '$1' + n + '$2')
     fs.writeFileSync(path.join('public', p), lines.join('\n'))
   } else {
     if (/function.*\(.*\)\s*{/.test(lines[i])) {
-      lines[i] = lines[i].replace('\r', '') + ' /*1*/\r'
+      lines[i] = lines[i].replace('\r', '') + ' /* 1 */\r'
       fs.writeFileSync(path.join('public', p), lines.join('\n'))
     }
   }

@@ -1,10 +1,13 @@
-$(function () { /*5*/
-  $('#btn').click(function () { /*5*/
-    run();
+function todo () {
+  console.log('aabbcc')
+}
+
+$(function () {
+  $('#btn').click(function () {
+    run()
   })
 
-  function run () { /*4*/
-
+  function run () {
+    todo()
   }
-
 })
